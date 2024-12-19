@@ -82,13 +82,13 @@ body {
 
 #add-icon {
     margin-top: 20px; /* Adjust spacing */
-    font-size: 20px;
+    font-size: 40px;
     background-color: green;
     color: white;
     border-radius: 5px;
     height: 45px;
     font-family: monospace;
-    width: 200px; /* Adjust width for better alignment */
+    text-decoration: none;
     border: none;
     cursor: pointer;
 }
