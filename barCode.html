@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Barcode Generator</title>
+    <!-- Include JsBarcode library from a reliable CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.0/dist/JsBarcode.all.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin-top: 50px;
+        }
+        input {
+            padding: 10px;
+            font-size: 16px;
+            width: 200px;
+        }
+        button {
+            padding: 10px 15px;
+            font-size: 16px;
+            margin-top: 20px;
+            cursor: pointer;
+        }
+        #barcode {
+            margin-top: 30px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Barcode Generator</h1>
+    <p>Enter a value to generate a barcode:</p>
+    <input type="text" id="barcodeInput" placeholder="Enter text or number">
+    <button onclick="generateBarcode()">Generate Barcode</button>
+    
+    <!-- The canvas element where the barcode will be rendered -->
+    <canvas id="barcode"></canvas> 
+
+    <script>
+        function generateBarcode() {
+            // Get the input value
+            var barcodeValue = document.getElementById("barcodeInput").value;
+            
+            // If input is not empty, generate barcode
+            if (barcodeValue.trim() !== "") {
+                // Create the barcode on the canvas element
+                JsBarcode("#barcode", barcodeValue, {
+                    format: "CODE128",  // Barcode type
+                    width: 2,           // Bar width
+                    height: 100,        // Barcode height
+                    displayValue: true  // Display the value below the barcode
+                });
+            } else {
+                alert("Please enter a value to generate the barcode.");
+            }
+        }
+    </script>
+</body>
+</html>

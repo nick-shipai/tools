@@ -1,0 +1,19 @@
+* {
+    margin: 0;
+    padding: 0;
+}
+.fas {
+    margin-left: 150px;
+    font-size: 90px;
+    margin-top: 240px;
+    animation: 1s roll ease-in-out infinite;
+}
+@keyframes roll {
+    0%{rotate: 0deg;}
+    100%{rotate: 360deg;}
+}
+#text {
+    margin-left: 130px;
+    margin-top: 190px;
+    font-size: 2rem;
+}

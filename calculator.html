@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Calculator</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <style>
+        #upBar {
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            border: none;
+            box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.8);
+            padding: 1px;
+            color: white;
+            background-color: black;
+            display: flex;
+            font-size: 10px;
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            font-family: monospace;
+            background-color: black;
+        }
+        h1 {
+            text-align: left;
+            margin: 0;
+            padding: 10px;
+            color: gold;
+        }
+        h1 span {
+            color: red;
+        }
+  
+
+#display {
+background-color: #222;
+height: 70px;
+color: white;
+font-size: 50px;
+text-align: right;
+padding: 20px;
+overflow-y: hidden; /* Disable vertical scrolling /
+overflow-x: auto; / Enable horizontal scrolling /
+display: flex;
+align-items: center;
+justify-content: flex-start; / Align text to the left /
+direction: ltr; / Ensure scrolling starts from the left-to-right */
+position: relative;
+}
+
+
+#display::-webkit-scrollbar {
+height: 5px; /* Height of the scrollbar /
+background: #333; / Scrollbar background */
+}
+
+#cursor {
+position: absolute;
+right: 20px;
+top: 50%;
+transform: translateY(-50%);
+font-size: 50px;
+animation: blink 1s infinite;
+background: none;
+}
+
+@keyframes blink {
+0% {
+opacity: 1;
+}
+50% {
+opacity: 0;
+}
+100% {
+opacity: 1;
+}
+}
+
+ 
+        #buttons {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr); /* 4 equal-width columns */
+            grid-gap: 20px;
+            background-color: black;
+        }
+        .button {
+            padding: 20px;
+            color: white;
+            border: none;
+            background: transparent;
+            font-size: 30px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+        #cancel, #divide, #times, #back, #minus, #plus {
+            color: blue;
+            
+        }
+        #equal {
+            background-color: blue;
+            height: 150px;
+            width: 50px;
+            border-radius: 5px;
+            font-size: 50px;
+            color: white;
+        }
+        #equal:active {
+            background-color: darkblue;
+        }
+        
+        /* Additional button styles for spacing and appearance */
+        #persent {
+            margin: 0;
+        }
+        button:active {
+            background-color: #444;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <div id="upBar">
+            <h1>Super <span>Calc</span></h1>
+        </div>
+        <div id="display"><div id="cursor">|</div></div>
+        <div id="buttons">
+            <button id="cancel" class="button">C</button>
+            <button id="divide" class="button"><i class="fas fa-divide"></i></button>
+            <button id="times" class="button"><i class="fas fa-times"></i></button>
+            <button id="back" class="button"><i class="fas fa-backspace"></i></button>
+            <button id="seven" class="button">7</button>
+            <button id="eight" class="button">8</button>
+            <button id="nine" class="button">9</button>
+            <button id="minus" class="button"><i class="fas fa-minus"></i></button>
+            <button id="four" class="button">4</button>
+            <button id="five" class="button">5</button>
+            <button id="six" class="button">6</button>
+            <button id="plus" class="button"><i class="fas fa-plus"></i></button>
+            <button id="one" class="button">1</button>
+            <button id="two" class="button">2</button>
+            <button id="three" class="button">3</button>
+            <button id="equal" class="button">=</button>
+            <button id="persent" class="button">%</button>
+            <button id="zero" class="button">0</button>
+            <button id="dot" class="button">.</button>
+        </div>
+    </div>
+
+    <script>
+        let display = document.getElementById("display");
+        let currentInput = "";
+        let operator = "";
+        let previousInput = "";
+
+        let cursor = document.getElementById("cursor");
+
+let cursorPosition = 0; // The position of the cursor in the current input
+
+function updateDisplay(value) {
+    display.innerHTML = value;
+
+    // Scroll to the right automatically when content overflows
+    display.scrollLeft = display.scrollWidth;
+
+    // Adjust font size dynamically if needed
+    if (value.length > 10) {
+        display.style.fontSize = "40px";
+    } else if (value.length > 20) {
+        display.style.fontSize = "30px";
+    } else {
+        display.style.fontSize = "50px"; // Default size
+    }
+
+    // Update cursor position visually
+    let displayText = value.replace(/ /g, ""); // Remove spaces (operators)
+    cursor.style.left = `${display.offsetWidth * (cursorPosition / displayText.length)}px`;
+}
+
+function moveCursor(direction) {
+    if (direction === "left" && cursorPosition > 0) {
+        cursorPosition--;
+    } else if (direction === "right" && cursorPosition < currentInput.length) {
+        cursorPosition++;
+    }
+    updateDisplay(previousInput + operator + currentInput);
+}
+
+function deleteAtCursor() {
+    if (cursorPosition > 0) {
+        currentInput = currentInput.slice(0, cursorPosition - 1) + currentInput.slice(cursorPosition);
+        cursorPosition--;
+        updateDisplay(previousInput + operator + currentInput);
+    }
+}
+
+// Add event listeners for cursor movement (using arrow keys for simplicity)
+document.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowLeft") {
+        moveCursor("left");
+    } else if (e.key === "ArrowRight") {
+        moveCursor("right");
+    } else if (e.key === "Backspace") {
+        deleteAtCursor();
+    }
+});
+
+// Optional: Allow the user to click on the display to move the cursor (based on clicked position)
+display.addEventListener("click", (e) => {
+    let clickedPosition = e.offsetX; // Get the x-coordinate of the click
+    let displayWidth = display.offsetWidth;
+
+    // Calculate the position in the current input text
+    cursorPosition = Math.floor((clickedPosition / displayWidth) * currentInput.length);
+    updateDisplay(previousInput + operator + currentInput);
+});
+
+
+        function reset() {
+            currentInput = "";
+            previousInput = "";
+            operator = "";
+            updateDisplay("");
+        }
+
+        function handleNumber(num) {
+            if (currentInput === "0" || currentInput === "") {
+                currentInput = num;
+            } else {
+                currentInput += num;
+            }
+            updateDisplay(previousInput + operator + currentInput); // Show the full calculation
+        }
+
+        function handleDot() {
+    // If previousInput is empty, start with 0
+    if (previousInput === "" && currentInput === "") {
+        currentInput = "0."; // Start with 0 and then add the dot
+    } else if (!currentInput.includes(".")) {
+        currentInput += "."; // Add a dot only if one isn't already there
+    }
+    updateDisplay(previousInput + operator + currentInput);
+}
+        function handleMinus() {
+    if (currentInput === "" && operator === "" && previousInput === "") {
+        // Allow minus as a negative sign at the start
+        currentInput = "-";
+        updateDisplay(currentInput);
+    } else {
+        handleOperator("-");
+    }
+}
+
+function handlePercent() {
+    if (currentInput === "" && operator === "" && previousInput === "") {
+        // Allow minus as a negative sign at the start
+        currentInput = "%";
+        updateDisplay(currentInput);
+    } else {
+        handleOperator("%");
+    }
+}
+
+        function handleOperator(op) {
+    // If currentInput is empty, replace the previous operator with the new one
+    if (currentInput === "") {
+        // If operator is already present, just replace it with the new one
+        if (previousInput !== "" && operator !== "") {
+            operator = op;
+            updateDisplay(previousInput + " " + operator);
+        } else {
+            operator = op;
+            previousInput = currentInput;
+            currentInput = "";
+            updateDisplay(previousInput + " " + operator); // Show the operator symbol (×, ÷, etc.)
+        }
+    } else {
+        if (previousInput !== "") {
+            calculate();
+        }
+        operator = op;
+        previousInput = currentInput;
+        currentInput = "";
+
+        // Map operators to their display symbols
+        const operatorSymbol = op === "*" ? "×" : op === "/" ? "÷" : op;
+        updateDisplay(previousInput + " " + operatorSymbol); // Show the operator symbol (×, ÷, etc.)
+    }
+}
+
+        function calculate() {
+    if (previousInput === "" || currentInput === "") return;
+    
+    let result;
+    const prev = parseFloat(previousInput);
+    const current = parseFloat(currentInput);
+
+    switch (operator) {
+        case "+":
+            result = prev + current;
+            break;
+        case "-":
+            result = prev - current;
+            break;
+        case "*": // Perform multiplication
+            result = prev * current;
+            break;
+        case "/": // Perform division
+            result = prev / current;
+            break;
+        case "%":
+            // Percentage calculation: (currentInput % of previousInput)
+            result = prev * (current / 100); 
+            break;
+        default:
+            return;
+    }
+    currentInput = result.toString();
+    operator = "";
+    previousInput = "";
+    updateDisplay(currentInput); // Show the result
+}
+let backButton = document.getElementById("back");
+let longPressTimer;
+
+backButton.addEventListener("touchstart", () => {
+    longPressTimer = setTimeout(() => {
+        reset(); // Reset the calculator after a 5-second long press
+    }, 500); // 5000ms (5 seconds) for long press
+});
+
+backButton.addEventListener("touchend", () => {
+    clearTimeout(longPressTimer); // Cancel the reset if the user releases early
+});
+        // Event listeners for buttons
+        document.getElementById("cancel").addEventListener("click", reset);
+        document.getElementById("divide").addEventListener("click", () => handleOperator("/"));
+        document.getElementById("times").addEventListener("click", () => handleOperator("*"));
+        document.getElementById("back").addEventListener("click", () => {
+  if (currentInput !== "") {
+    // If there's something in currentInput, remove the last character
+    currentInput = currentInput.slice(0, -1);
+    // If currentInput becomes empty, reset it to ""
+    if (currentInput === "") {
+      currentInput = "";
+    }
+    updateDisplay(previousInput + operator + currentInput);
+  } else if (operator !== "") {
+    // If currentInput is empty but there's an operator, remove the operator
+    operator = "";
+    updateDisplay(previousInput + operator + currentInput);
+  } else if (previousInput !== "") {
+    // If there's no operator and currentInput is empty, remove the last character from previousInput
+    previousInput = previousInput.slice(0, -1);
+    // If previousInput becomes empty, reset it to ""
+    if (previousInput === "") {
+      previousInput = "";
+    }
+    updateDisplay(previousInput + operator + currentInput);
+  } else {
+    // If everything is empty, call reset
+    reset();
+  }
+});
+
+
+
+
+        document.getElementById("minus").addEventListener("click", handleMinus);
+        document.getElementById("plus").addEventListener("click", () => handleOperator("+"));
+        document.getElementById("equal").addEventListener("click", calculate);
+        document.getElementById("persent").addEventListener("click", handlePercent);
+        document.getElementById("dot").addEventListener("click", handleDot);
+
+function updateDisplay(value) {
+    display.innerHTML = value;
+
+    // Scroll to the right automatically when content overflows
+    display.scrollLeft = display.scrollWidth;
+
+    // Adjust font size dynamically if needed
+    if (value.length > 10) {
+        display.style.fontSize = "40px";
+    } else if (value.length > 20) {
+        display.style.fontSize = "30px";
+    } else {
+        display.style.fontSize = "50px"; // Default size
+    }
+}
+
+        // Numbers and dot
+        const numberButtons = document.querySelectorAll(".button");
+        numberButtons.forEach(button => {
+            if (!isNaN(button.textContent) || button.textContent === '.') {
+                button.addEventListener("click", () => {
+                    if (button.textContent === '.') {
+                        handleDot();
+                    } else {
+                        handleNumber(button.textContent);
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>

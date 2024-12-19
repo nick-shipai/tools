@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Code Generator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+    <link rel="stylesheet" href="code.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <style>
+        .color-picker {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .color-option {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid #ccc;
+            transition: transform 0.3s;
+        }
+       .color-option:active {
+           transform: scale(0.95);
+       }
+        .color-option:hover {
+            transform: scale(1.2);
+        }
+
+        .color-blue { background-color: blue; }
+        .color-green { background-color: green; }
+        .color-black { background-color: black; }
+        .color-red { background-color: red; }
+        .color-gold { background-color: gold; }
+        .color-purple { background-color: purple; }
+
+        .edit-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 20px;
+        }
+
+        iedit-icon, fa-plus {
+            cursor: pointer;
+            font-size: 2rem;
+            color: #000;
+            transition: color 0.3s;
+            
+         
+        }
+
+        #edit-icon:hover {
+            color: #007BFF;
+        }
+        #edit-button{
+            margin-top: 20px; /* Adjust spacing */
+    font-size: 20px;
+    background-color: green;
+    color: white;
+    border-radius: 5px;
+    height: 45px;
+    font-family: monospace;
+    width: 200px; /* Adjust width for better alignment */
+    border: none;
+    cursor: pointer;
+        }
+        #edit-button:active, #add-icon:active {
+            transform: scale(0.95);
+        }
+        #color-picker-container {
+            margin-bottom: 20px;
+        }
+       
+    </style>
+</head>
+<body>
+  <div class="container">
+    <div class="upbar">
+      <h1>QR Code <span> Gen</span></h1>
+      <i class="fas fa-ellipsis-v" id="menu"></i>
+    </div>
+    <br>
+    <div class="things">
+      <button id="url" class="btn1 active" onclick="setInputType('url')">Url</button>
+      <button id="email" class="btn2" onclick="setInputType('email')">Email</button>
+      <button id="phoneNumber" class="btn3" onclick="setInputType('phone')">Phone Number</button>
+      <button id="file" class="btn4" onclick="setInputType('file')">File</button>
+    </div>
+    <div class="urlSide">
+      <label for="urlInput" id="inputLabel">Enter Destination URL</label>
+      <br><br>
+      <input type="url" class="activeInput" id="urlInput" placeholder="https://" value="https://" required>
+      <input type="email" id="emailInput" placeholder="Enter Email" style="display:none;">
+      <input type="tel" id="phoneInput" placeholder="+1 0123 456 7890" style="display:none;">
+      <input type="file" id="fileInput" style="display:none;" onchange="handleFileSelect(event)">
+      
+      <label for="fileInput" id="fileInputLabel" style="display:none;"><i class="fas fa-file"></i> Select a file</label>
+      <div id="fileName" style="display:none;"></div>
+      <br><br><br><br>
+      <button onclick="generateQRCode()" id="clickBtn">GET QR CODE</button>
+      <br><br>
+      <div class="qr-codeContainer" id="qr-codeContainer">
+          <canvas id="qr-code"></canvas>
+          <button id="add-icon"> <i class="fas fa-download"></i> Download</button>
+          <button id="edit-button" onclick="toggleColorPicker()">
+            <i class="fas fa-edit" id="edit-icon"></i>
+            Edit Qr Code
+            </button><br>
+          <div class="edit-container">
+            <div id="color-picker-container" class="color-picker" style="display: none;">
+                <div class="color-option color-blue" onclick="changeColor('blue')"></div>
+                <div class="color-option color-green" onclick="changeColor('green')"></div>
+                <div class="color-option color-black" onclick="changeColor('black')"></div>
+                <div class="color-option color-red" onclick="changeColor('red')"></div>
+                <div class="color-option color-gold" onclick="changeColor('gold')"></div>
+                <div class="color-option color-purple" onclick="changeColor('purple')"></div>
+            </div>
+          </div>
+        </div>
+    </div>
+  </div>
+
+  <div class="loading" id="loading" style="display: none;">
+    Working magic<span class="dots"><div></div><div></div><div></div></span>
+  </div>
+
+  <script type="module">
+  // Import Firebase modules
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js";
+  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js";
+  import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-database.js";
+  import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-storage.js";
+
+  // Firebase configuration
+  const firebaseConfig = {
+    apiKey: "AIzaSyBqgNC5BXxtHMnc-oMhQ0QhLYg18oAG3QA",
+    authDomain: "teens-f3fc7.firebaseapp.com",
+    projectId: "teens-f3fc7",
+    storageBucket: "teens-f3fc7.appspot.com",
+    messagingSenderId: "828565874604",
+    appId: "1:828565874604:web:83ce3266202b4cd4b1fc09"
+  };
+
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getDatabase(app);
+  const storage = getStorage(app);
+
+  // Function to get UID from URL query parameter
+  function getUidFromURL() {
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get('uid');
+  }
+
+  // Function to upload the QR code image to Firebase Storage
+  function uploadQRCodeToFirebase(qrCanvas) {
+    qrCanvas.toBlob(function(blob) {
+      const qrCodeRef = storageRef(storage, 'qrCodes/' + Date.now() + '.png');
+      uploadBytes(qrCodeRef, blob).then((snapshot) => {
+        console.log('QR Code uploaded successfully!');
+        getDownloadURL(snapshot.ref).then((downloadURL) => {
+          console.log('File available at', downloadURL);
+          saveQRCodeURLToDatabase(downloadURL);
+        });
+      }).catch((error) => {
+        console.error('Error uploading QR code:', error);
+      });
+    }, 'image/png');
+  }
+
+  // Function to save the QR code URL to Firebase Realtime Database
+  function saveQRCodeURLToDatabase(url) {
+    const uid = getUidFromURL() || auth.currentUser?.uid;
+    if (uid) {
+      const qrCodeRef = ref(db, `qrCodes/${uid}`);
+      set(qrCodeRef, {
+        url: url,
+        timestamp: Date.now()
+      }).then(() => {
+        console.log('QR Code URL saved to the database');
+      }).catch((error) => {
+        console.error('Error saving QR code URL to the database:', error);
+      });
+    } else {
+      console.log('No user found, unable to save QR code URL');
+    }
+  }
+
+  // Handle authentication based on Firebase Authentication or UID from query parameter
+  function handleAuthentication() {
+    onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        console.log(`User is authenticated with UID: ${user.uid}`);
+      } else {
+        console.log('User is not authenticated. Checking URL for UID...');
+        const uid = getUidFromURL();
+        if (uid) {
+          console.log(`Checking user authentication for UID from URL: ${uid}`);
+        } else {
+          console.log('No UID found in the query parameters.');
+        }
+      }
+    });
+  }
+
+  // Call handleAuthentication when the page loads
+  window.onload = function() {
+    handleAuthentication();
+  };
+
+  let selectedFile;
+  let qrColor = 'black'; // Default color for QR code lines
+
+  window.setInputType = function(type) {
+    // Hide all input fields
+    document.getElementById('urlInput').style.display = 'none';
+    document.getElementById('emailInput').style.display = 'none';
+    document.getElementById('phoneInput').style.display = 'none';
+    document.getElementById('fileInputLabel').style.display = 'none';
+    document.getElementById('fileName').style.display = 'none';
+
+    // Remove 'active' class from all buttons
+    document.getElementById('url').classList.remove('active');
+    document.getElementById('email').classList.remove('active');
+    document.getElementById('phoneNumber').classList.remove('active');
+    document.getElementById('file').classList.remove('active');
+
+    // Display the correct input field and add 'active' class to the clicked button
+    if (type === 'url') {
+      document.getElementById('urlInput').style.display = 'block';
+      document.getElementById('url').classList.add('active');
+      document.getElementById('inputLabel').innerText = 'Enter Destination URL';
+    } else if (type === 'email') {
+      document.getElementById('emailInput').style.display = 'block';
+      document.getElementById('email').classList.add('active');
+      document.getElementById('inputLabel').innerText = 'Enter Email';
+    } else if (type === 'phone') {
+      document.getElementById('phoneInput').style.display = 'block';
+      document.getElementById('phoneNumber').classList.add('active');
+      document.getElementById('inputLabel').innerText = 'Enter Phone Number';
+    } else if (type === 'file') {
+      document.getElementById('fileInputLabel').style.display = 'block';
+      document.getElementById('fileInputLabel').style.marginLeft = '5px';
+      document.getElementById('file').classList.add('active');
+      document.getElementById('inputLabel').innerText = 'Select a file';
+    }
+  }
+
+   window.handleFileSelect = function(event) {
+    selectedFile = event.target.files[0];
+    if (selectedFile) {
+      document.getElementById('fileName').innerText = `Selected file: ${selectedFile.name}`;
+      document.getElementById('fileName').style.display = 'block';
+    } else {
+      document.getElementById('fileName').style.display = 'none';
+    }
+  }
+  
+  window.generateQRCode = function() {
+    // Show loading animation initially
+    document.getElementById('loading').style.display = 'flex';
+    
+    setTimeout(() => {
+        var value, inputElement;
+
+        // Handle file input case
+        if (document.getElementById('fileInputLabel').style.display !== 'none') {
+            if (!selectedFile) {
+                showError('Please select a file.', document.getElementById('fileInputLabel'));
+                document.getElementById('loading').style.display = 'none';
+                return;
+            }
+
+            // Handle file upload
+            const fileRef = storageRef(storage, 'uploads/' + selectedFile.name);
+            uploadBytes(fileRef, selectedFile).then((snapshot) => {
+                console.log('File uploaded successfully!');
+                getDownloadURL(snapshot.ref).then((fileURL) => {
+                    console.log('File available at', fileURL);
+
+                    // Generate QR code for the file URL
+                    var qr = new QRious({
+                        element: document.getElementById('qr-code'),
+                        value: fileURL,
+                        size: 250,
+                        foreground: qrColor // Apply the color to the QR code lines
+                    });
+
+                    document.getElementById('qr-codeContainer').style.display = 'flex';
+                    document.getElementById('loading').style.display = 'none';
+
+                    // Log the QR code link
+                    const qrCodeLink = qr.toDataURL();
+                    console.log('Generated QR Code Link:', qrCodeLink);
+
+                    // Optionally, save the QR code URL to the database
+                    saveQRCodeURLToDatabase(fileURL);
+                });
+            }).catch((error) => {
+                console.error('Error uploading file:', error);
+                document.getElementById('loading').style.display = 'none';
+            });
+        } else {
+            // Handle other input fields (URL, email, phone number)
+            if (document.getElementById('urlInput').style.display !== 'none') {
+                value = document.getElementById('urlInput').value.trim();
+                inputElement = document.getElementById('urlInput');
+                if (!validateURL(value)) {
+                    showError('Please enter a valid URL.', inputElement);
+                    document.getElementById('loading').style.display = 'none';
+                    return;
+                }
+            } else if (document.getElementById('emailInput').style.display !== 'none') {
+                value = document.getElementById('emailInput').value.trim();
+                inputElement = document.getElementById('emailInput');
+                if (!validateEmail(value)) {
+                    showError('Please enter a valid email address.', inputElement);
+                    document.getElementById('loading').style.display = 'none';
+                    return;
+                }
+            } else if (document.getElementById('phoneInput').style.display !== 'none') {
+                value = document.getElementById('phoneInput').value.trim();
+                inputElement = document.getElementById('phoneInput');
+                if (!validatePhone(value)) {
+                    showError('Please enter a valid phone number.', inputElement);
+                    document.getElementById('loading').style.display = 'none';
+                    return;
+                }
+            }
+
+            if (value === '') {
+                showError('Please enter a value.', inputElement);
+                document.getElementById('loading').style.display = 'none';
+                return;
+            }
+
+            var qr = new QRious({
+                element: document.getElementById('qr-code'),
+                value: value,
+                size: 120,
+                foreground: qrColor // Apply the color to the QR code lines
+            });
+
+            document.getElementById('qr-codeContainer').style.display = 'flex';
+            document.getElementById('loading').style.display = 'none';
+
+            // Log the generated QR code URL
+            const qrCodeLink = qr.toDataURL();
+            console.log('Generated QR Code Link:', qrCodeLink);
+
+            // Upload QR code to Firebase if needed
+            uploadQRCodeToFirebase(document.getElementById('qr-code'));
+        }
+    }, 2000);
+}
+
+// Function to display error message and shake input field
+function showError(message, inputElement) {
+    // Focus on the input field
+    inputElement.focus();
+
+    // Add shaking animation to the input field
+    inputElement.classList.add('shake');
+    setTimeout(() => {
+        inputElement.classList.remove('shake');
+    }, 1000);
+
+    // Display custom error message below the input field
+    const errorMessage = document.createElement('div');
+    errorMessage.textContent = message;
+    errorMessage.classList.add('error-message');
+
+    // If there is an existing error message, remove it before adding a new one
+    const existingError = inputElement.parentNode.querySelector('.error-message');
+    if (existingError) {
+        existingError.remove();
+    }
+
+    // Append the error message below the input field
+    inputElement.parentNode.appendChild(errorMessage);
+
+    // Hide the error message after 2 seconds
+    setTimeout(() => {
+        errorMessage.remove();
+    }, 2000);
+}
+
+// Validation functions
+function validateURL(url) {
+    const urlPattern = /^(https?:\/\/[^\s$.?#].[^\s]*)$/i;
+    return urlPattern.test(url);
+}
+
+function validateEmail(email) {
+    const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    return emailPattern.test(email);
+}
+
+function validatePhone(phone) {
+    const phonePattern = /^[0-9]{10}$/; // Simple validation for a 10-digit phone number
+    return phonePattern.test(phone);
+}
+
+  // Toggle color picker visibility
+  window.toggleColorPicker = function() {
+  document.getElementById('edit-button').style.display ='none';
+    const colorPickerContainer = document.getElementById('color-picker-container');
+    colorPickerContainer.style.display = (colorPickerContainer.style.display === 'none') ? 'flex' : 'none';
+    
+  }
+  
+  document.getElementById('menu').addEventListener('click', function() {
+    const uid = getUidFromURL() || auth.currentUser?.uid;
+    if (uid) {
+        // Redirect to viewQr.html with the UID as a query parameter
+        window.location.href = `viewQr.html?uid=${uid}`;
+    } else {
+        console.log('No UID available');
+    }
+});
+// Add this function to handle the download
+document.getElementById('add-icon').addEventListener('click', function () {
+    const qrCanvas = document.getElementById('qr-code'); // Get the canvas element
+    const qrDataURL = qrCanvas.toDataURL('image/png'); // Convert the canvas to a data URL
+
+    // Create a temporary anchor element
+    const tempLink = document.createElement('a');
+    tempLink.href = qrDataURL; // Set the data URL as the href
+    tempLink.download = 'qr-code.png'; // Set the default file name
+
+    // Trigger the download
+    tempLink.click();
+
+    // Remove the temporary anchor element
+    tempLink.remove();
+});
+
+  // Change QR code color and update QR code immediately
+  window.changeColor = function(color) {
+    qrColor = color;
+    console.log(`QR Code color changed to ${color}`);
+    generateQRCode(); // Regenerate QR code immediately with the new color
+    toggleColorPicker(); // Hide the picker after selection
+    document.getElementById('edit-button').style.display ='block';
+  }
+  </script>
+</body>
+</html>

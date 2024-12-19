@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Loading</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="auth.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div id="container">
+        <i class="fas fa-wrench" id="menu"></i>
+        <div id="text">Loading...</div>
+    </div>
+
+    <script type="module">
+        // Import Firebase modules
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js";
+        import { getDatabase, ref, set, get } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-database.js";
+
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyBqgNC5BXxtHMnc-oMhQ0QhLYg18oAG3QA",
+            authDomain: "teens-f3fc7.firebaseapp.com",
+            projectId: "teens-f3fc7",
+            storageBucket: "teens-f3fc7.appspot.com",
+            messagingSenderId: "828565874604",
+            appId: "1:828565874604:web:83ce3266202b4cd4b1fc09"
+        };
+
+        // Initialize Firebase
+        console.log("Initializing Firebase...");
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getDatabase(app);
+
+        // Generate a random username
+        function generateUsername() {
+            const adjectives = ["Quick", "Bold", "Brave", "Smart", "Happy"];
+            const nouns = ["Eagle", "Lion", "Tiger", "Shark", "Wolf"];
+            const randomAdjective = adjectives[Math.floor(Math.random() * adjectives.length)];
+            const randomNoun = nouns[Math.floor(Math.random() * nouns.length)];
+            const randomNumber = Math.floor(Math.random() * 1000);
+            const username = `${randomAdjective}${randomNoun}${randomNumber}`;
+            console.log("Generated username:", username);
+            return username;
+        }
+
+        // Check if the user already exists in the database
+        async function checkUserExists(uid) {
+            console.log(`Checking if UID ${uid} exists in the database...`);
+            const userRef = ref(db, `users/${uid}`);
+            try {
+                const snapshot = await get(userRef);
+                if (snapshot.exists()) {
+                    console.log("User already exists:", snapshot.val());
+                    return true; // User exists
+                } else {
+                    console.log("User does not exist. A new account will be created.");
+                    return false; // User does not exist
+                }
+            } catch (error) {
+                console.error("Error checking user existence:", error);
+                throw error;
+            }
+        }
+
+        // Save username to Firebase Realtime Database
+        async function saveUsername(uid) {
+            const username = generateUsername();
+            console.log(`Saving username for UID: ${uid}`);
+            const userRef = ref(db, `users/${uid}`);
+            try {
+                await set(userRef, {
+                    username: username,
+                    createdAt: new Date().toISOString()
+                });
+                console.log("Username successfully saved:", username);
+            } catch (error) {
+                console.error("Error saving username:", error);
+            }
+        }
+
+        // Redirect to qr.html with UID as query parameter
+        function redirectToQR(uid) {
+            console.log(`Redirecting to qr.html?uid=${uid}...`);
+            window.location.href = `qr.html?uid=${uid}`;
+        }
+
+        // Handle authentication and redirection
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                // User is authenticated
+                console.log("User authenticated. UID:", user.uid);
+                try {
+                    const exists = await checkUserExists(user.uid);
+                    if (!exists) {
+                        await saveUsername(user.uid); // Only generate and save a username for new users
+                    }
+                    redirectToQR(user.uid); // Redirect with UID as query param
+                } catch (error) {
+                    console.error("Error during authentication flow:", error);
+                }
+            } else {
+                // User is not authenticated, sign in anonymously
+                console.log("User not authenticated. Signing in anonymously...");
+                signInAnonymously(auth)
+                    .then(async (result) => {
+                        console.log("Signed in anonymously. UID:", result.user.uid);
+                        await saveUsername(result.user.uid);
+                        redirectToQR(result.user.uid); // Redirect with UID as query param
+                    })
+                    .catch((error) => {
+                        console.error("Error signing in anonymously:", error);
+                    });
+            }
+        });
+    </script>
+</body>
+</html>
